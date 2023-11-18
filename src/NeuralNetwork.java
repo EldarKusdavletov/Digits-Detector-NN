@@ -4,8 +4,8 @@ public class NeuralNetwork {
 
     private double learningRate;
     private Layer[] layers;
-
-    private UnaryOperator<Double> activation = x -> 1.0 / (1.0 + Math.exp(-x));
+    private UnaryOperator<Double> sigmoid = x -> 1.0 / (1.0 + Math.exp(-x));
+    private UnaryOperator<Double> d_sigmoid = x -> x * (1.0 - x);
 
     public NeuralNetwork(double learningRate_, int... sizes) {
         learningRate = learningRate_;
@@ -37,18 +37,16 @@ public class NeuralNetwork {
                     l1.neurons[j] += l.neurons[i] * l.weights[i][j];
                 }
 
-                l1.neurons[j] = activation.apply(l1.neurons[j]);
+                l1.neurons[j] = sigmoid.apply(l1.neurons[j]);
             }
         }
         return layers[layers.length - 1].neurons;
     }
 
-
     public void backwardPropagation(double[] targets) {
-
         Layer outputLayer = layers[layers.length - 1];
         for (int i = 0; i < outputLayer.size; i ++) {
-            outputLayer.gradient[i] = outputLayer.neurons[i] - targets[i];
+            outputLayer.gradient[i] = learningRate * (outputLayer.neurons[i] - targets[i]);
         }
 
         for (int k = layers.length - 1; k > 0; k --) {
@@ -58,23 +56,18 @@ public class NeuralNetwork {
                 l.gradient[i] = 0;
                 for (int j = 0; j < l1.size; j ++) {
                     l.gradient[i] += l1.gradient[j] * l.weights[i][j];
-                }
-            }
-
-            for (int i = 0; i < l.size; i ++) {
-                for (int j = 0; j < l1.size; j ++) {
-                    l.weights[i][j] -= learningRate * l1.gradient[j] * l1.neurons[j] * (1 - l1.neurons[j]) * l.neurons[i];
+                    l.weights[i][j] -= l1.gradient[j] * d_sigmoid.apply(l1.neurons[j])  * l.neurons[i];
                 }
             }
 
             for (int j = 0; j < l1.size; j++) {
-                l1.biases[j] -= l1.gradient[j] * l1.neurons[j] * (1 - l1.neurons[j]) * learningRate;
+                l1.biases[j] -= l1.gradient[j] * d_sigmoid.apply(l1.neurons[j]);
             }
         }
 
     }
 
-    void train() {
+    void train(double[] inputs, double[] targets) {
 
     }
 }
